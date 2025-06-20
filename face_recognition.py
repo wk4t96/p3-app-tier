@@ -1,6 +1,4 @@
-__copyright__   = "Copyright 2024, VISA Lab"
-__license__     = "MIT"
-
+# -*- coding: utf-8 -*-
 import os
 import csv
 import sys
