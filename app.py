@@ -5,9 +5,12 @@ import boto3
 import base64
 import subprocess
 import time
-
 from pathlib import Path
 from botocore.exceptions import BotoCoreError, ClientError
+from dotenv import load_dotenv  # 新增
+
+# 讀取 .env 檔
+load_dotenv()
 
 # === 設定區 ===
 reqQueueUrl = "131567-request-queue"
@@ -15,8 +18,12 @@ respQueueUrl = "131567-response-queue"
 inputBucketName = "s3-yjche-input"
 outputBucketName = "s3-yjche-output"
 
-# === 初始化 AWS 用戶端 ===
-session = boto3.Session(profile_name="default")
+# === 初始化 AWS 用戶端，改用從 .env 讀取的環境變數，不指定 profile_name ===
+session = boto3.Session(
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    region_name=os.getenv("AWS_REGION")
+)
 sqs = session.client("sqs")
 s3 = session.client("s3")
 
@@ -52,7 +59,7 @@ def getRequestfromWebTier():
             try:
                 result = subprocess.check_output(["python3", pythonScriptPath, tempFilePath], stderr=subprocess.STDOUT)
                 recognitionResult = result.decode("utf-8").strip()
-                print("Recognition result: {}".format(recognitionResult))
+                print(f"Recognition result: {recognitionResult}")
             except subprocess.CalledProcessError as e:
                 print(f"exec error: {e.output.decode('utf-8')}")
                 return
