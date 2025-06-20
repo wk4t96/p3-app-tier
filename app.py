@@ -22,7 +22,7 @@ outputBucketName = "s3-yjche-output"
 session = boto3.Session(
     aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
     aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-    aws_region = os.getenv("AWS_DEFAULT_REGION", "ap-northeast-2") # 預設區域為 ap-northeast-2
+    region_name = os.getenv("AWS_DEFAULT_REGION", "ap-northeast-2") # 預設區域為 ap-northeast-2
 )
 sqs = session.client("sqs")
 s3 = session.client("s3")
