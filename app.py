@@ -88,12 +88,12 @@ def getRequestfromWebTier():
 
         else:
             print("DONEE.")
-            time.sleep(10.5)
+            time.sleep(15)
             getRequestfromWebTier()
 
     except Exception as e:
         print("Erroor found:", str(e))
-        time.sleep(10.5)
+        time.sleep(15)
         getRequestfromWebTier()
 
 
