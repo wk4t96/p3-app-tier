@@ -1,0 +1,94 @@
+import os
+import json
+import boto3
+import base64
+import subprocess
+import time
+
+from pathlib import Path
+from botocore.exceptions import BotoCoreError, ClientError
+
+# === 設定區 ===
+reqQueueUrl = "131567-request-queue"
+respQueueUrl = "131567-response-queue"
+inputBucketName = "s3-yjche-input"
+outputBucketName = "s3-yjche-output"
+
+# === 初始化 AWS 用戶端 ===
+session = boto3.Session(profile_name="default")
+sqs = session.client("sqs")
+s3 = session.client("s3")
+
+# === 路徑設定 ===
+homeDir = os.environ.get("HOME", "/home/ubuntu")
+modelDir = os.path.join(homeDir, "model")
+appDir = os.path.join(homeDir, "app")
+tempDir = os.path.join(appDir, "temp")
+Path(tempDir).mkdir(parents=True, exist_ok=True)
+
+# === 處理請求 ===
+def getRequestfromWebTier():
+    try:
+        receive_params = {
+            'QueueUrl': reqQueueUrl,
+            'MaxNumberOfMessages': 1,
+            'WaitTimeSeconds': 19,
+        }
+        response = sqs.receive_message(**receive_params)
+
+        messages = response.get("Messages", [])
+        if messages:
+            message = messages[0]
+            body = json.loads(message["Body"])
+            fileName = body["fileName"]
+            imageData = body["imageData"]
+
+            tempFilePath = os.path.join(tempDir, fileName)
+            with open(tempFilePath, "wb") as f:
+                f.write(base64.b64decode(imageData))
+
+            pythonScriptPath = os.path.join(modelDir, "face_recognition.py")
+            try:
+                result = subprocess.check_output(["python3", pythonScriptPath, tempFilePath], stderr=subprocess.STDOUT)
+                recognitionResult = result.decode("utf-8").strip()
+                print(f"Recognition result: {recognitionResult}")
+            except subprocess.CalledProcessError as e:
+                print(f"exec error: {e.output.decode('utf-8')}")
+                return
+
+            resultKey = ".".join(fileName.split(".")[:-1])
+            s3.put_object(Bucket=outputBucketName, Key=resultKey, Body=recognitionResult)
+
+            responseMessage = {
+                "fileName": resultKey + ".jpg",
+                "result": recognitionResult,
+            }
+            sqs.send_message(
+                QueueUrl=respQueueUrl,
+                MessageBody=json.dumps(responseMessage)
+            )
+            print(f"uploaded to S3 as {resultKey}")
+            print("Message sent to Resp QUEUE.")
+
+            sqs.delete_message(
+                QueueUrl=reqQueueUrl,
+                ReceiptHandle=message["ReceiptHandle"]
+            )
+
+            os.remove(tempFilePath)
+            getRequestfromWebTier()  # 下一輪
+
+        else:
+            print("DONEE.")
+            time.sleep(10.5)
+            getRequestfromWebTier()
+
+    except Exception as e:
+        print("Erroor found:", str(e))
+        time.sleep(10.5)
+        getRequestfromWebTier()
+
+
+# 啟動處理
+if __name__ == "__main__":
+    getRequestfromWebTier()
