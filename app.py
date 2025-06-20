@@ -52,7 +52,7 @@ def getRequestfromWebTier():
             try:
                 result = subprocess.check_output(["python3", pythonScriptPath, tempFilePath], stderr=subprocess.STDOUT)
                 recognitionResult = result.decode("utf-8").strip()
-                print(f"Recognition result: {recognitionResult}")
+                print("Recognition result: {}".format(recognitionResult))
             except subprocess.CalledProcessError as e:
                 print(f"exec error: {e.output.decode('utf-8')}")
                 return
