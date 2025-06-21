@@ -31,6 +31,6 @@ def face_match(img_path, data_path): # img_path= location of photo, data_path= l
     idx_min = dist_list.index(min(dist_list))
     return (name_list[idx_min], min(dist_list))
 
-result = face_match(test_image, 'data.pt')
+result = face_match(test_image, 'encoding.dat')  # 'data.pt'
 print(result[0])
 # 函數最終會返回一個元組，包含識別出的人名和最小的距離值。
